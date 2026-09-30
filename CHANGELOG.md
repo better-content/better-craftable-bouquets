@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Normalize the project identity to `procedural-bouquets / procedural_bouquets`; this is a clean break with no legacy aliases or migrations.
+- Normalize the project identity to `better-craftable-bouquets / better_craftable_bouquets`; this is a clean break with no legacy aliases or migrations.
 - Require an existing empty flower pot for direct bouquet placement, eliminating free-pot duplication.
 - Replace the static potted-bouquet recipe with an NBT-preserving custom recipe and keep both direct and crafting potting routes.
 - Return exactly the original bouquet and one flower pot when a filled pot is broken.

@@ -6,4 +6,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'procedural-bouquets'
+rootProject.name = 'better-craftable-bouquets'

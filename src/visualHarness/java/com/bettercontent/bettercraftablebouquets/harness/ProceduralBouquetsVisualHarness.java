@@ -1,0 +1,591 @@
+package com.bettercontent.bettercraftablebouquets.harness;
+
+import com.bettercontent.bettercraftablebouquets.ProceduralBouquets;
+import com.bettercontent.bettercraftablebouquets.block.BouquetPlacement;
+import com.bettercontent.bettercraftablebouquets.client.BouquetRenderUtil;
+import com.bettercontent.bettercraftablebouquets.client.BouquetGridScreen;
+import com.bettercontent.bettercraftablebouquets.client.BouquetPlacementGhostRenderer;
+import com.bettercontent.bettercraftablebouquets.blockentity.BouquetGridBlockEntity;
+import com.bettercontent.bettercraftablebouquets.data.BouquetData;
+import com.bettercontent.bettercraftablebouquets.data.BouquetEntry;
+import com.bettercontent.bettercraftablebouquets.item.PottedBouquetItem;
+import com.bettercontent.bettercraftablebouquets.menu.BouquetGridMenu;
+import com.bettercontent.bettercraftablebouquets.registry.ModBlocks;
+import com.bettercontent.bettercraftablebouquets.registry.ModItems;
+import com.google.gson.GsonBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import net.minecraft.SharedConstants;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.versions.forge.ForgeVersion;
+
+@Mod.EventBusSubscriber(modid = ProceduralBouquets.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public final class ProceduralBouquetsVisualHarness {
+    private static final String[] CAPTURES = {
+        "01-grid.png",
+        "02-bouquet-item.png",
+        "03-potted-item.png",
+        "04-potted-block.png",
+        "05-grid-editor.png",
+        "06-sunset-ember.png",
+        "07-moonlit-meadow.png",
+        "08-blush-garden.png",
+        "09-wildflower-crown.png",
+        "10-placement-assist.png"
+    };
+    private static final List<BouquetEntry> EMPTY = List.of();
+    private static final List<BouquetEntry> SINGLE = entries(1);
+    private static final List<BouquetEntry> MIXED = entries(12);
+    private static final List<BouquetEntry> DENSE = entries(64);
+    private static final List<List<BouquetEntry>> FIXTURES = List.of(EMPTY, SINGLE, MIXED, DENSE);
+    private static final String[] FIXTURE_NAMES = {"Empty", "Single", "Mixed 12", "Dense 64"};
+    private static final List<BouquetEntry> PLACEMENT_CONTEXT = arrangement(
+        flower("dandelion", 3, 4, 0, 0.92F, -1),
+        flower("allium", 12, 4, 1, 1.04F, 1),
+        flower("cornflower", 4, 12, 2, 0.96F, 0),
+        flower("white_tulip", 12, 12, 3, 1.00F, 1)
+    );
+    private static final BouquetEntry PLACEMENT_GHOST = BouquetPlacement.entry(
+        BlockPos.ZERO,
+        UUID.fromString("817723b2-2f88-4bf5-9355-d27f6078df4b"),
+        ResourceLocation.withDefaultNamespace("white_tulip"),
+        8,
+        8
+    );
+    private static final List<BouquetEntry> OCCUPIED_PLACEMENT_CONTEXT = arrangement(
+        flower("dandelion", 3, 4, 0, 0.92F, -1),
+        flower("allium", 12, 4, 1, 1.04F, 1),
+        flower("blue_orchid", 8, 8, 2, 0.98F, 0),
+        flower("cornflower", 4, 12, 2, 0.96F, 0),
+        flower("white_tulip", 12, 12, 3, 1.00F, 1)
+    );
+    private static final List<Showcase> SHOWCASES = List.of(
+        new Showcase("Sunset Ember", arrangement(
+            flower("orange_tulip", 8, 13, 0, 1.08F, 2),
+            flower("orange_tulip", 7, 12, 2, 1.02F, 1),
+            flower("red_tulip", 5, 11, 1, 0.98F, 1),
+            flower("red_tulip", 10, 11, 3, 1.00F, 1),
+            flower("poppy", 3, 9, 0, 0.94F, 0),
+            flower("poppy", 12, 9, 2, 0.96F, 0),
+            flower("orange_tulip", 6, 8, 1, 1.04F, 0),
+            flower("orange_tulip", 9, 8, 3, 1.02F, 0),
+            flower("dandelion", 4, 6, 0, 0.90F, -1),
+            flower("dandelion", 11, 6, 2, 0.92F, -1),
+            flower("red_tulip", 7, 5, 1, 0.98F, -1),
+            flower("red_tulip", 8, 5, 3, 1.00F, -1),
+            flower("poppy", 6, 3, 0, 0.88F, -2),
+            flower("poppy", 9, 3, 2, 0.90F, -2)
+        )),
+        new Showcase("Moonlit Meadow", arrangement(
+            flower("allium", 7, 13, 0, 1.08F, 2),
+            flower("allium", 9, 12, 2, 1.04F, 2),
+            flower("blue_orchid", 5, 11, 1, 1.00F, 1),
+            flower("blue_orchid", 11, 10, 3, 0.98F, 1),
+            flower("oxeye_daisy", 8, 10, 0, 0.96F, 1),
+            flower("cornflower", 3, 9, 2, 0.94F, 0),
+            flower("cornflower", 12, 9, 0, 0.96F, 0),
+            flower("azure_bluet", 6, 8, 1, 0.94F, 0),
+            flower("azure_bluet", 9, 8, 3, 0.92F, 0),
+            flower("white_tulip", 4, 6, 0, 0.98F, -1),
+            flower("white_tulip", 11, 6, 2, 1.00F, -1),
+            flower("lily_of_the_valley", 7, 5, 1, 0.92F, -1),
+            flower("lily_of_the_valley", 8, 5, 3, 0.94F, -1),
+            flower("cornflower", 6, 3, 0, 0.88F, -2),
+            flower("cornflower", 10, 4, 2, 0.90F, -2)
+        )),
+        new Showcase("Blush Garden", arrangement(
+            flower("pink_tulip", 8, 13, 0, 1.08F, 2),
+            flower("allium", 6, 12, 1, 1.02F, 2),
+            flower("allium", 10, 12, 3, 1.00F, 1),
+            flower("white_tulip", 4, 10, 0, 0.98F, 1),
+            flower("white_tulip", 12, 10, 2, 0.98F, 1),
+            flower("pink_tulip", 6, 9, 1, 1.04F, 0),
+            flower("pink_tulip", 9, 9, 3, 1.02F, 0),
+            flower("oxeye_daisy", 3, 7, 0, 0.92F, 0),
+            flower("oxeye_daisy", 12, 7, 2, 0.94F, 0),
+            flower("red_tulip", 5, 6, 1, 0.96F, -1),
+            flower("red_tulip", 10, 6, 3, 0.98F, -1),
+            flower("pink_tulip", 7, 5, 0, 1.00F, -1),
+            flower("pink_tulip", 8, 5, 2, 1.00F, -1),
+            flower("azure_bluet", 6, 3, 1, 0.88F, -2),
+            flower("azure_bluet", 9, 3, 3, 0.90F, -2)
+        )),
+        new Showcase("Wildflower Crown", arrangement(
+            flower("allium", 7, 13, 0, 1.06F, 2),
+            flower("blue_orchid", 9, 13, 2, 1.04F, 2),
+            flower("pink_tulip", 5, 11, 1, 1.00F, 1),
+            flower("orange_tulip", 11, 11, 3, 1.00F, 1),
+            flower("cornflower", 3, 9, 0, 0.94F, 1),
+            flower("poppy", 13, 9, 2, 0.96F, 0),
+            flower("oxeye_daisy", 5, 8, 1, 0.96F, 0),
+            flower("dandelion", 10, 8, 3, 0.94F, 0),
+            flower("azure_bluet", 7, 9, 0, 0.92F, 0),
+            flower("lily_of_the_valley", 9, 9, 2, 0.92F, 0),
+            flower("red_tulip", 3, 6, 1, 0.94F, -1),
+            flower("white_tulip", 12, 6, 3, 0.96F, -1),
+            flower("orange_tulip", 5, 5, 0, 0.96F, -1),
+            flower("pink_tulip", 10, 5, 2, 0.98F, -1),
+            flower("blue_orchid", 7, 5, 1, 0.92F, -1),
+            flower("dandelion", 6, 3, 3, 0.88F, -2),
+            flower("poppy", 9, 3, 0, 0.90F, -2)
+        ))
+    );
+
+    private static boolean opened;
+    private static boolean capturePending;
+    private static int startupTicks;
+    private static int pageTicks;
+    private static int page;
+    private static int finishTicks;
+
+    private ProceduralBouquetsVisualHarness() {
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!opened) {
+            if (minecraft.getOverlay() == null && minecraft.screen != null && ++startupTicks >= 30) {
+                minecraft.setScreen(new HarnessScreen());
+                opened = true;
+                System.out.println("PROCEDURAL_BOUQUETS_VISUAL_HARNESS screen-ready");
+            }
+            return;
+        }
+
+        if (page >= CAPTURES.length) {
+            if (++finishTicks >= 20) {
+                minecraft.stop();
+            }
+            return;
+        }
+
+        if (!capturePending && ++pageTicks >= 30) {
+            capturePending = true;
+            String capture = CAPTURES[page];
+            Screenshot.grab(minecraft.gameDirectory, capture, minecraft.getMainRenderTarget(), message ->
+                minecraft.execute(() -> finishCapture(minecraft, capture, message))
+            );
+        }
+    }
+
+    private static void finishCapture(Minecraft minecraft, String capture, Component message) {
+        Path screenshot = minecraft.gameDirectory.toPath().resolve("screenshots").resolve(capture);
+        if (!Files.isRegularFile(screenshot)) {
+            throw new IllegalStateException("Visual harness screenshot failed: " + capture + " (" + message.getString() + ")");
+        }
+        System.out.println("PROCEDURAL_BOUQUETS_VISUAL_HARNESS captured " + capture);
+        page++;
+        pageTicks = 0;
+        capturePending = false;
+        if (page == CAPTURES.length) {
+            writeCompletion(minecraft.gameDirectory.toPath());
+        }
+    }
+
+    private static void writeCompletion(Path gameDirectory) {
+        try {
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("status", "complete");
+            metadata.put("minecraft", SharedConstants.getCurrentVersion().getName());
+            metadata.put("forge", ForgeVersion.getVersion());
+            metadata.put("mod", ModList.get().getModContainerById(ProceduralBouquets.MOD_ID)
+                .orElseThrow().getModInfo().getVersion().toString());
+            metadata.put("resolution", List.of(1600, 900));
+            metadata.put("gui_scale", 2);
+            metadata.put("fixtures", List.of("empty:0", "single:1", "mixed:12", "dense:64"));
+            metadata.put("captures", List.of(CAPTURES));
+            Files.writeString(
+                gameDirectory.resolve("visual-harness-complete.json"),
+                new GsonBuilder().setPrettyPrinting().create().toJson(metadata) + "\n"
+            );
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to write visual harness completion metadata", exception);
+        }
+    }
+
+    private static List<BouquetEntry> entries(int count) {
+        String[] flowers = {
+            "minecraft:poppy", "minecraft:dandelion", "minecraft:blue_orchid", "minecraft:allium",
+            "minecraft:azure_bluet", "minecraft:red_tulip", "minecraft:orange_tulip", "minecraft:white_tulip",
+            "minecraft:pink_tulip", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:lily_of_the_valley"
+        };
+        List<BouquetEntry> entries = new ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            int x;
+            int z;
+            if (count == 1) {
+                x = 8;
+                z = 8;
+            } else if (count == 12) {
+                int[] mixedX = {8, 6, 10, 4, 12, 7, 9, 5, 11, 3, 13, 8};
+                int[] mixedZ = {8, 6, 6, 8, 8, 10, 10, 4, 4, 11, 11, 3};
+                x = mixedX[index];
+                z = mixedZ[index];
+            } else {
+                int[] denseCoordinates = {1, 3, 5, 7, 8, 10, 12, 14};
+                x = denseCoordinates[index % 8];
+                z = denseCoordinates[(index / 8) % 8];
+            }
+            float scale = 0.84F + ((index * 7) % 25) / 100.0F;
+            int y = (index % 5) - 2;
+            entries.add(new BouquetEntry(ResourceLocation.parse(flowers[index % flowers.length]), x, z, index, scale, y));
+        }
+        return List.copyOf(entries);
+    }
+
+    private static List<BouquetEntry> arrangement(BouquetEntry... entries) {
+        return List.of(entries);
+    }
+
+    private static BouquetEntry flower(String item, int x, int z, int rotation, float scale, int yOffset) {
+        return new BouquetEntry(ResourceLocation.parse("minecraft:" + item), x, z, rotation, scale, yOffset);
+    }
+
+    private static ItemStack bouquet(List<BouquetEntry> entries) {
+        ItemStack stack = new ItemStack(ModItems.BOUQUET.get());
+        BouquetData.write(stack, entries);
+        return stack;
+    }
+
+    private static final class HarnessScreen extends Screen {
+        private static final int BACKGROUND = 0xFF20252B;
+        private static final int PANEL = 0xFF303841;
+        private static final int LABEL = 0xFFF2E9D8;
+        private BouquetGridScreen editorScreen;
+
+        private HarnessScreen() {
+            super(Component.literal("Procedural Bouquets Visual Harness"));
+        }
+
+        @Override
+        protected void init() {
+            Inventory inventory = new Inventory(null);
+            inventory.setItem(0, new ItemStack(Items.POPPY, 16));
+            inventory.setItem(1, new ItemStack(Items.CORNFLOWER, 8));
+            inventory.setItem(9, new ItemStack(Items.DANDELION, 12));
+            BouquetGridBlockEntity grid = new BouquetGridBlockEntity(
+                BlockPos.ZERO,
+                ModBlocks.BOUQUET_GRID.get().defaultBlockState()
+            );
+            for (BouquetEntry entry : DENSE) {
+                grid.addEntry(entry);
+            }
+            editorScreen = new BouquetGridScreen(
+                new BouquetGridMenu(77, inventory, grid),
+                inventory,
+                Component.translatable("screen.better_craftable_bouquets.bouquet_grid")
+            );
+            editorScreen.init(minecraft, width, height);
+        }
+
+        @Override
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            graphics.fill(0, 0, width, height, BACKGROUND);
+            graphics.drawCenteredString(font, title, width / 2, 8, LABEL);
+            switch (page) {
+                case 0 -> renderBlockPage(graphics, true);
+                case 1 -> renderItemPage(graphics, false);
+                case 2 -> renderItemPage(graphics, true);
+                case 3 -> renderBlockPage(graphics, false);
+                case 4 -> editorScreen.render(graphics, -100, -100, partialTick);
+                case 5, 6, 7, 8 -> renderShowcasePage(graphics, SHOWCASES.get(page - 5));
+                case 9 -> renderPlacementAssistPage(graphics);
+                default -> {
+                }
+            }
+        }
+
+        private void renderPlacementAssistPage(GuiGraphics graphics) {
+            String[] labels = {
+                "Valid empty cell · mint",
+                "Occupied · blocked red",
+                "Sneak replacement · amber",
+                "No held flower · no assist"
+            };
+            BouquetPlacement.State[] states = {
+                BouquetPlacement.State.VALID,
+                BouquetPlacement.State.BLOCKED_OCCUPIED,
+                BouquetPlacement.State.REPLACEMENT,
+                null
+            };
+            int columns = 2;
+            int rows = 2;
+            int gap = 10;
+            int panelWidth = (width - (gap * (columns + 1))) / columns;
+            int firstTop = 48;
+            int panelHeight = (height - firstTop - 34 - gap) / rows;
+            for (int index = 0; index < labels.length; index++) {
+                int column = index % columns;
+                int row = index / columns;
+                int left = gap + (column * (panelWidth + gap));
+                int top = firstTop + (row * (panelHeight + gap));
+                graphics.fill(left, top, left + panelWidth, top + panelHeight, PANEL);
+                graphics.drawCenteredString(font, labels[index], left + panelWidth / 2, top + 12, LABEL);
+                List<BouquetEntry> entries = index == 1 || index == 2
+                    ? OCCUPIED_PLACEMENT_CONTEXT
+                    : PLACEMENT_CONTEXT;
+                renderPlacementScene(
+                    graphics,
+                    left + panelWidth / 2,
+                    top + panelHeight / 2 + 22,
+                    panelHeight * 0.56F,
+                    entries,
+                    states[index]
+                );
+            }
+            graphics.drawCenteredString(
+                font,
+                "Exact final size, cell, quarter-turn rotation and scale · translucent 3D production model",
+                width / 2,
+                30,
+                LABEL
+            );
+            graphics.drawString(font, "Close the inventory and look at the tray to place", 12, height - 16, LABEL);
+        }
+
+        private void renderShowcasePage(GuiGraphics graphics, Showcase showcase) {
+            String[] columnNames = {"Arrangement · high angle", "Gathered bouquet", "Potted bouquet"};
+            String[] panelContexts = {"tray", "gathered", "potted"};
+            int gap = 8;
+            int panelWidth = (width - (gap * 4)) / 3;
+            int panelHeight = height - 64;
+            int firstTop = 52;
+
+            for (int column = 0; column < 3; column++) {
+                int left = gap + (column * (panelWidth + gap));
+                graphics.fill(left, firstTop, left + panelWidth, firstTop + panelHeight, PANEL);
+                graphics.drawCenteredString(
+                    font,
+                    showcase.name() + " · " + panelContexts[column] + " · " + showcase.entries().size(),
+                    left + (panelWidth / 2),
+                    firstTop + 10,
+                    LABEL
+                );
+                if (column == 0) {
+                    renderBlockScene(
+                        graphics,
+                        left + (panelWidth / 2),
+                        firstTop + (panelHeight / 2) + 38,
+                        panelHeight * 0.43F,
+                        showcase.entries(),
+                        true,
+                        65.0F,
+                        35.0F
+                    );
+                } else if (column == 1) {
+                    renderItemScene(
+                        graphics,
+                        left + (panelWidth / 2),
+                        firstTop + (panelHeight / 2) + 16,
+                        panelHeight * 0.42F,
+                        bouquet(showcase.entries()),
+                        ItemDisplayContext.GUI
+                    );
+                } else {
+                    renderBlockScene(
+                        graphics,
+                        left + (panelWidth / 2),
+                        firstTop + (panelHeight / 2) + 32,
+                        panelHeight * 0.43F,
+                        showcase.entries(),
+                        false,
+                        35.0F,
+                        35.0F
+                    );
+                }
+            }
+
+            graphics.drawCenteredString(font, title, width / 2, 8, LABEL);
+            for (int column = 0; column < columnNames.length; column++) {
+                int left = gap + (column * (panelWidth + gap));
+                graphics.drawCenteredString(font, columnNames[column], left + (panelWidth / 2), 30, LABEL);
+            }
+        }
+
+        private void renderBlockPage(GuiGraphics graphics, boolean grid) {
+            String suffix = grid ? "Grid" : "Potted block";
+            for (int fixture = 0; fixture < FIXTURES.size(); fixture++) {
+                renderBlockPanel(graphics, fixture, 0, FIXTURE_NAMES[fixture] + " · isometric", grid, 35.0F);
+                renderBlockPanel(graphics, fixture, 1, FIXTURE_NAMES[fixture] + " · high angle", grid, 75.0F);
+            }
+            graphics.drawString(font, suffix + " · production block model + production bouquet renderer", 12, height - 16, LABEL);
+        }
+
+        private void renderBlockPanel(GuiGraphics graphics, int fixture, int row, String label, boolean grid, float pitch) {
+            int columns = 4;
+            int gap = 8;
+            int panelWidth = (width - (gap * (columns + 1))) / columns;
+            int panelHeight = (height - 52) / 2;
+            int left = gap + fixture * (panelWidth + gap);
+            int top = 24 + row * panelHeight;
+            graphics.fill(left, top, left + panelWidth, top + panelHeight - gap, PANEL);
+            graphics.drawCenteredString(font, label, left + panelWidth / 2, top + 8, LABEL);
+            renderBlockScene(graphics, left + panelWidth / 2, top + panelHeight / 2 + 16, panelHeight * 0.52F, FIXTURES.get(fixture), grid, pitch, 35.0F);
+        }
+
+        private void renderItemPage(GuiGraphics graphics, boolean potted) {
+            ItemDisplayContext[] contexts = {
+                ItemDisplayContext.GUI,
+                ItemDisplayContext.FIXED,
+                ItemDisplayContext.GROUND,
+                ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                ItemDisplayContext.THIRD_PERSON_RIGHT_HAND
+            };
+            List<List<BouquetEntry>> arrangements = potted ? FIXTURES : List.of(SINGLE, MIXED, DENSE);
+            String[] names = potted ? FIXTURE_NAMES : new String[]{"Single", "Mixed 12", "Dense 64"};
+            int rows = arrangements.size();
+            int gap = 6;
+            int panelWidth = (width - gap * 6) / 5;
+            int panelHeight = (height - 42) / rows;
+            for (int row = 0; row < rows; row++) {
+                ItemStack stack = potted ? PottedBouquetItem.createStack(arrangements.get(row)) : bouquet(arrangements.get(row));
+                for (int column = 0; column < contexts.length; column++) {
+                    int left = gap + column * (panelWidth + gap);
+                    int top = 24 + row * panelHeight;
+                    graphics.fill(left, top, left + panelWidth, top + panelHeight - gap, PANEL);
+                    graphics.drawCenteredString(font, names[row] + " · " + contextName(contexts[column]), left + panelWidth / 2, top + 6, LABEL);
+                    renderItemScene(graphics, left + panelWidth / 2, top + panelHeight / 2 + 10, panelHeight * 0.36F, stack, contexts[column]);
+                }
+            }
+            graphics.drawString(font, (potted ? "Potted bouquet" : "Bouquet") + " · production item renderer", 12, height - 16, LABEL);
+        }
+
+        private static String contextName(ItemDisplayContext context) {
+            return switch (context) {
+                case GUI -> "GUI";
+                case FIXED -> "Fixed";
+                case GROUND -> "Ground";
+                case FIRST_PERSON_RIGHT_HAND -> "First person";
+                case THIRD_PERSON_RIGHT_HAND -> "Third person";
+                default -> context.getSerializedName();
+            };
+        }
+
+        private void renderBlockScene(GuiGraphics graphics, float x, float y, float scale, List<BouquetEntry> entries, boolean grid, float pitch, float yaw) {
+            PoseStack pose = graphics.pose();
+            MultiBufferSource.BufferSource buffers = graphics.bufferSource();
+            pose.pushPose();
+            pose.translate(x, y, 200.0F);
+            pose.scale(scale, -scale, scale);
+            pose.mulPose(Axis.XP.rotationDegrees(pitch));
+            pose.mulPose(Axis.YP.rotationDegrees(yaw));
+            pose.translate(-0.5F, -0.3F, -0.5F);
+            minecraft.getBlockRenderer().renderSingleBlock(
+                (grid ? ModBlocks.BOUQUET_GRID : ModBlocks.POTTED_BOUQUET).get().defaultBlockState(),
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                0
+            );
+            if (grid) {
+                BouquetRenderUtil.renderGridBouquet(entries, pose, buffers, LightTexture.FULL_BRIGHT, 0, null, 1234L, BouquetData.MAX_ENTRIES);
+            } else if (!entries.isEmpty()) {
+                pose.translate(0.5F, 0.0F, 0.5F);
+                BouquetRenderUtil.renderPottedBouquet(entries, pose, buffers, LightTexture.FULL_BRIGHT, 0, null, 1234L, BouquetData.MAX_ENTRIES);
+            }
+            graphics.flush();
+            pose.popPose();
+        }
+
+        private void renderPlacementScene(
+            GuiGraphics graphics,
+            float x,
+            float y,
+            float scale,
+            List<BouquetEntry> entries,
+            BouquetPlacement.State state
+        ) {
+            PoseStack pose = graphics.pose();
+            MultiBufferSource.BufferSource buffers = graphics.bufferSource();
+            pose.pushPose();
+            pose.translate(x, y, 200.0F);
+            pose.scale(scale, -scale, scale);
+            pose.mulPose(Axis.XP.rotationDegrees(65.0F));
+            pose.mulPose(Axis.YP.rotationDegrees(35.0F));
+            pose.translate(-0.5F, -0.3F, -0.5F);
+            minecraft.getBlockRenderer().renderSingleBlock(
+                ModBlocks.BOUQUET_GRID.get().defaultBlockState(),
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                0
+            );
+            BouquetRenderUtil.renderGridBouquet(
+                entries,
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                0,
+                null,
+                1234L,
+                BouquetData.MAX_ENTRIES
+            );
+            if (state != null) {
+                BouquetPlacementGhostRenderer.render(
+                    PLACEMENT_GHOST,
+                    state,
+                    pose,
+                    buffers,
+                    LightTexture.FULL_BRIGHT,
+                    0,
+                    null,
+                    1234
+                );
+            }
+            graphics.flush();
+            pose.popPose();
+        }
+
+        private void renderItemScene(GuiGraphics graphics, float x, float y, float scale, ItemStack stack, ItemDisplayContext context) {
+            PoseStack pose = graphics.pose();
+            pose.pushPose();
+            pose.translate(x, y, 200.0F);
+            pose.scale(scale, -scale, scale);
+            minecraft.getItemRenderer().renderStatic(stack, context, LightTexture.FULL_BRIGHT, 0, pose, graphics.bufferSource(), null, 17);
+            graphics.flush();
+            pose.popPose();
+        }
+
+        @Override
+        public boolean shouldCloseOnEsc() {
+            return false;
+        }
+
+        @Override
+        public boolean isPauseScreen() {
+            return false;
+        }
+    }
+
+    private record Showcase(String name, List<BouquetEntry> entries) {
+    }
+}

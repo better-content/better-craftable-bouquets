@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "better_craftable_bouquets:block/bouquet_grid"
+    }
+  }
+}

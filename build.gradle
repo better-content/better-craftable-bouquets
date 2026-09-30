@@ -10,7 +10,7 @@ group = mod_group_id
 version = mod_version
 
 base {
-    archivesName = 'procedural-bouquets'
+    archivesName = 'better-craftable-bouquets'
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -52,7 +52,7 @@ minecraft {
             client true
             workingDirectory project.file('run-visual-harness')
             property 'forge.logging.console.level', 'info'
-            property 'procedural_bouquets.visualHarness', 'true'
+            property 'better_craftable_bouquets.visualHarness', 'true'
             args '--width', '1600', '--height', '900'
 
             mods {
@@ -251,7 +251,7 @@ tasks.named('jacocoTestReport', JacocoReport) {
     }
     classDirectories.setFrom(
         files(classDirectories.files.collect {
-            fileTree(dir: it, include: ['com/bettercontent/proceduralbouquets/data/**'])
+            fileTree(dir: it, include: ['com/bettercontent/bettercraftablebouquets/data/**'])
         })
     )
 }

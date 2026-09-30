@@ -1,4 +1,4 @@
-# Procedural Bouquets
+# Better Craftable Bouquets
 
 Pack-owned procedural flower bouquet generator for Forge `1.20.1`.
 
@@ -25,7 +25,7 @@ Pack-owned procedural flower bouquet generator for Forge `1.20.1`.
 
 Deploy the reobfuscated runtime jar from:
 
-- `build/libs/procedural-bouquets-<version>.jar`
+- `build/libs/better-craftable-bouquets-<version>.jar`
 
 ## Community and support
 
@@ -33,4 +33,4 @@ For modpack and mod discussion, playtest feedback, and bug reports, join the [Be
 
 ## Identity
 
-The canonical identity is repository/artifact `procedural-bouquets`, mod ID and resource namespace `procedural_bouquets`, and Maven group `com.bettercontent`.
+The canonical identity is repository/artifact `better-craftable-bouquets`, mod ID and resource namespace `better_craftable_bouquets`, and Maven group `com.bettercontent`.

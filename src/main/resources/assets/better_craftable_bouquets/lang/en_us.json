@@ -1,0 +1,11 @@
+{
+  "item.better_craftable_bouquets.bouquet": "Bouquet",
+  "item.better_craftable_bouquets.bouquet_grid": "Bouquet Grid",
+  "block.better_craftable_bouquets.bouquet_grid": "Bouquet Grid",
+  "block.better_craftable_bouquets.potted_bouquet": "Potted Bouquet",
+  "item.better_craftable_bouquets.potted_bouquet": "Potted Bouquet",
+  "screen.better_craftable_bouquets.bouquet_grid": "Bouquet Grid",
+  "screen.better_craftable_bouquets.rotate_hint": "R rotate / Shift+R reverse",
+  "tooltip.better_craftable_bouquets.flower_count": "Flowers: %s",
+  "tooltip.better_craftable_bouquets.more": "+%s more"
+}
