@@ -20,6 +20,7 @@ public final class ProceduralBouquets {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ProceduralBouquets() {
+        com.bettercontent.bettercraftablebouquets.diagnostics.RuntimeDiagnostics.initialize();
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModBlocks.BLOCKS.register(modBus);
         ModItems.ITEMS.register(modBus);

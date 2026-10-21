@@ -8,6 +8,8 @@ and the [shared documentation/policy index](../../better-content-modpack/docs/RE
 
 Pack-owned procedural flower bouquet generator for Forge `1.20.1`.
 
+See [bounded playtest observations](docs/playtest-observations.md) for native menu/transfer diagnostics and independent visual boundaries.
+
 ## Gameplay
 
 - Arrange up to 64 full-sized, upright, three-dimensional flowers on the two-pixel-high bouquet grid, then collect the finished bouquet; every flower keeps its exact rotation across tray, gathered, and potted forms. Gathered bouquets cinch every stem inside a small cream ribbon tie and gently fan the outer flowers, while potted flowers spread through the pot's full three-dimensional opening.

@@ -28,6 +28,15 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
     public static final int ROTATE_COUNTERCLOCKWISE_BUTTON = 1;
 
     private final Container grid;
+    private void observe(Player player, String event, String result, String reason, int slot, int amount) {
+        if (player.level().isClientSide) return;
+        var log = com.bettercontent.bettercraftablebouquets.diagnostics.RuntimeDiagnostics.LOG;
+        if (!log.enabled("menu")) return;
+        com.bettercontent.bettercraftablebouquets.diagnostics.FeatureObservation.menu(log,
+            () -> new com.bettercontent.bettercraftablebouquets.diagnostics.PlaytestLog.Context("server",
+                player.level().dimension().location().toString(), player.level().getGameTime(), player.getUUID().toString(), ""),
+            event, result, reason, containerId, slot, amount);
+    }
 
     public BouquetGridMenu(int id, Inventory inventory, FriendlyByteBuf data) {
         this(id, inventory, findGrid(inventory, data == null ? BlockPos.ZERO : data.readBlockPos()));
@@ -102,7 +111,8 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
         if (isRotationClick(slotId, button, clickType)) {
             if (!player.level().isClientSide && grid instanceof BouquetGridBlockEntity bouquetGrid) {
                 int quarterTurns = button == ROTATE_COUNTERCLOCKWISE_BUTTON ? -1 : 1;
-                bouquetGrid.rotateAt(xForSlot(slotId), zForSlot(slotId), quarterTurns);
+                boolean changed = bouquetGrid.rotateAt(xForSlot(slotId), zForSlot(slotId), quarterTurns);
+                observe(player, "bouquet.rotate", changed ? "committed" : "rejected", changed ? "native_rotation" : "empty_slot", slotId, quarterTurns);
             }
             return;
         }
@@ -130,10 +140,12 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         if (index < 0 || index >= slots.size()) {
+            observe(player, "bouquet.transfer", "rejected", "slot_outside_menu", index, 0);
             return ItemStack.EMPTY;
         }
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
+            observe(player, "bouquet.transfer", "rejected", "empty_slot", index, 0);
             return ItemStack.EMPTY;
         }
 
@@ -141,10 +153,12 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
         ItemStack original = source.copy();
         if (index < GRID_SLOT_COUNT) {
             if (!moveItemStackTo(source, GRID_SLOT_COUNT, slots.size(), true)) {
+                observe(player, "bouquet.transfer", "rejected", "player_inventory_full", index, 0);
                 return ItemStack.EMPTY;
             }
         } else {
             if (!BouquetGridBlock.isValidFlower(source)) {
+                observe(player, "bouquet.transfer", "rejected", "not_flower", index, 0);
                 return ItemStack.EMPTY;
             }
             boolean movedAny = false;
@@ -156,6 +170,7 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
                 movedAny = true;
             }
             if (!movedAny) {
+                observe(player, "bouquet.transfer", "rejected", "grid_full_or_no_progress", index, 0);
                 return ItemStack.EMPTY;
             }
         }
@@ -166,6 +181,8 @@ public final class BouquetGridMenu extends AbstractContainerMenu {
             slot.setChanged();
         }
         slot.onTake(player, source);
+        if (com.bettercontent.bettercraftablebouquets.diagnostics.RuntimeDiagnostics.LOG.enabled("menu"))
+            observe(player, "bouquet.transfer", "committed", "native_transfer", index, original.getCount() - source.getCount());
         return original;
     }
 

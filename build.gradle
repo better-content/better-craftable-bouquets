@@ -162,6 +162,7 @@ tasks.register('verifyFull') {
     dependsOn tasks.named('verifyFast')
     dependsOn tasks.named('headlessGameTest')
 }
+apply from: file('gradle/native-gametest-fixture.gradle')
 
 tasks.register('prepareVisualHarnessOptions', Copy) {
     group = 'verification'
